@@ -13,7 +13,7 @@ import { TodoItem } from '../interfaces/todo_item.interface';
 import { TodoItemService } from './todo_item.service';
 
 @Controller('api/todoitem')
-export class TodoItemsController {
+export class TodoItemController {
   constructor(private todoItemsService: TodoItemService) {}
 
   @Get()

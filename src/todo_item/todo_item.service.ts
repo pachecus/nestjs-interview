@@ -7,7 +7,9 @@ import { TodoItem } from '../interfaces/todo_item.interface';
 export class TodoItemService {
   private readonly todoItems: TodoItem[] = [];
 
-  constructor() {}
+  constructor(todoItem: TodoItem[] = []) {
+      this.todoItems = todoItem;
+    }
 
   all(): TodoItem[] {
     return this.todoItems;
