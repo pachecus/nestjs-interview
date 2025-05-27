@@ -9,4 +9,4 @@ import { TodoItemService } from './todo_item.service';
     { provide: TodoItemService, useValue: new TodoItemService([]) },
   ],
 })
-export class TodoListsModule {}
+export class TodoItemModule {}
