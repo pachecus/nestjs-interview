@@ -19,8 +19,8 @@ export class TodoListsService {
     return this.todolists.map(list => list.name);
   }
 
-  get(todoListName: string): TodoList | { error: string } {
-    const todoList = this.todolists.find(list => list.name === String(todoListName));
+  get(idList: number): TodoList | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList));
     if (todoList){
       return todoList
     }
@@ -50,7 +50,7 @@ export class TodoListsService {
   }
 
   update(dto: UpdateTodoListDto): TodoList | { error: string } {
-    const todolist = this.todolists.find(list => list.name == dto.name);
+    const todolist = this.todolists.find(list => list.id == dto.idList);
     if (!todolist) {
       return { "error" : "list-does-not-exist" }
     }
@@ -59,8 +59,8 @@ export class TodoListsService {
     return todolist;
   }
 
-  setCompletionStateItem(nameList: string, idItem: number, state: boolean): TodoItem | { error: string } {
-    const todoList = this.todolists.find(list => list.name == String(nameList));
+  setCompletionStateItem(idList: number, idItem: number, state: boolean): TodoItem | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList));
 
     if (!todoList) {
       return { "error" : "list-does-not-exist" };
@@ -76,8 +76,8 @@ export class TodoListsService {
     return item;
   }
 
-  setDescriptionStateItem(nameList: string, idItem: number, description: string): TodoItem | { error: string } {
-    const todoList = this.todolists.find(list => list.name == String(nameList));
+  setDescriptionStateItem(idList: number, idItem: number, description: string): TodoItem | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList));
 
     if (!todoList) {
       return { "error" : "list-does-not-exist" };
@@ -93,42 +93,42 @@ export class TodoListsService {
     return item;
   }
 
-  setItemList(nameList:string, nameNewList: string, idItem: number): TodoItem | { error: string } {
-    const todoList = this.todolists.find(list => list.name == nameList)
+  setItemList(idList: number, idNewList: number, idItem: number): TodoItem | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList))
     if (!todoList) {
       return { "error" : "list-does-not-exist" };
     }
-    const newTodoList = this.todolists.find(list => list.name == nameNewList)
+    const newTodoList = this.todolists.find(list => list.id == Number(idNewList))
     if (!newTodoList) {
       return { "error" : "list-does-not-exist" };
     }
-
-    const item = todoList.items.find(item => item.id == idItem)
+    const item = todoList.items.find(item => item.id == Number(idItem))
     if(!item){
       return { "error" : "item-does-not-exist" };
     }
 
-    const newItem = this.createTodoItem(nameNewList, { descripcion: item.descripcion });
+    const newItem = this.createTodoItem(idNewList, { descripcion: item.descripcion });
     if ("error" in newItem){
       return newItem;
     }
 
     const itemCompletionState = item.finalizada;
 
-    const deletedItem = this.deleteItemList(nameList, idItem);
+    const deletedItem = this.deleteItemList(idList, idItem);
     if(deletedItem && "error" in deletedItem){
       return deletedItem
     }
 
     if (itemCompletionState) {
-      this.setCompletionStateItem(nameNewList, newItem.id, true);
+      this.setCompletionStateItem(idNewList, newItem.id, true);
     }
 
     return newItem
   } 
  
-  delete(todoListName: string): void | { error: string } {
-    const todoListIndex = this.todolists.findIndex(list => list.name == String(todoListName));
+  delete(idList: number): void | { error: string } {
+    // chequeo para verificar que el indice de lista efectivamente existe
+    const todoListIndex = this.todolists.findIndex(list => list.id == Number(idList));
     
     if (todoListIndex > -1) {
       this.todolists.splice(todoListIndex, 1);
@@ -137,8 +137,8 @@ export class TodoListsService {
     }
   }
 
-  createTodoItem(nameList: string, dto: CreateTodoItemDto): TodoItem | { error: string } {
-    const todoList = this.todolists.find(list => list.name == String(nameList))
+  createTodoItem(idList: number, dto: CreateTodoItemDto): TodoItem | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList))
 
     if (!todoList){
       return { "error" : "list-does-not-exist" };
@@ -152,8 +152,8 @@ export class TodoListsService {
     return newItem;
   }
 
-  deleteItemList(nameList: string, idItem: number): void | { error: string } {
-    const todoList = this.todolists.find(list => list.name == nameList);
+  deleteItemList(idList: number, idItem: number): void | { error: string } {
+    const todoList = this.todolists.find(list => list.id == Number(idList));
 
     if (!todoList) {
       return { "error" : "list-does-not-exist" };

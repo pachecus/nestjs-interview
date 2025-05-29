@@ -1,4 +1,4 @@
 export class UpdateTodoListDto {
-  name: string;
+  idList: number;
   newName: string;
 }
