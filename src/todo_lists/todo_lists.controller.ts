@@ -23,6 +23,11 @@ export class TodoListsController {
   index(): string[] {
     return this.todoListsService.all();
   }
+  
+  @Get('/all')
+  getAllLists(): TodoList[] {
+    return this.todoListsService.getAllLists()
+  }
 
   @Get('/:todoListName')
   show(
@@ -30,6 +35,7 @@ export class TodoListsController {
   ): TodoList | { error: string } {
     return this.todoListsService.get(param.todoListName);
   }
+
 
   @Post()
   create(
@@ -67,6 +73,14 @@ export class TodoListsController {
     @Body() bdy: { idItem: number, description: string } 
   ): TodoItem | { error:string } {
     return this.todoListsService.setDescriptionStateItem(param.todoListName, bdy.idItem, bdy.description)
+  }
+
+  @Put('/list/:todoListName')
+  updateItemList(
+    @Param() param: { todoListName: string },
+    @Body() bdy: { newTodoListName: string, idItem: number }
+  ): TodoItem | { error: string } {
+    return this.todoListsService.setItemList(param.todoListName, bdy.newTodoListName, bdy.idItem);
   }
 
   @Delete()
