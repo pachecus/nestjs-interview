@@ -1,3 +1,4 @@
 export class CreateTodoItemDto {
-    descripcion: string;
+    todoListId: number;
+    description: string;
 }

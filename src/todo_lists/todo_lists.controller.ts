@@ -14,93 +14,98 @@ import { TodoListsService } from './todo_lists.service';
 
 import { TodoItem } from 'src/interfaces/todo_item.interface';
 import { CreateTodoItemDto } from './dtos/create-todo_item';
+import { UpdateCompletionStateTodoItemDto } from './dtos/update_completion_state-todo_item';
+import { UpdateDescriptionTodoItemDto } from './dtos/update_description-todo_item';
+import { UpdateItemTodoListDto } from './dtos/update_item-todo_list';
 
 @Controller('api/todolists')
 export class TodoListsController {
   constructor(private todoListsService: TodoListsService) {}
 
+  // Get all the todoLists with all their items
   @Get()
-  index(): string[] {
+  index(): TodoList[] {
     return this.todoListsService.all();
   }
 
-  @Get('/all')
-  getAllLists(): TodoList[] {
-    return this.todoListsService.getAllLists()
-  }
-
-  @Get('/:idList')
+  // Get a todoList
+  @Get('/:todoListId')
   show(
-    @Param() param: { idList: number }
+    @Param() param: { todoListId: number }
   ): TodoList | { error: string } {
-    return this.todoListsService.get(param.idList);
+    return this.todoListsService.get(param.todoListId);
   }
 
-
+  // Create a new todoList
   @Post()
   create(
     @Body() dto: CreateTodoListDto
-  ): TodoList | {error: string} {
+  ): TodoList | {error: string} { // returns error if list already exists
     return this.todoListsService.create(dto);
   }
 
-  @Post('/:idList')
-  addItemList(
-    @Param() param: { idList: number },
+  // Create a todoItem and add it into a todoList
+  @Post('/add-todoitem')
+  createTodoItem(
     @Body() dto: CreateTodoItemDto
   ): TodoItem | { error: string } {
-    return this.todoListsService.createTodoItem(param.idList, dto);
+    return this.todoListsService.createTodoItem(dto);
   }
 
-  @Put()
+  // Update the state of a todoItem to Completed (true), Incompleted (false)
+  @Put('/completion-state/')
+  updateCompletionState(
+    @Body() dto: UpdateCompletionStateTodoItemDto
+  ): TodoItem | { error:string } {
+    return this.todoListsService.setCompletionStateItem(dto)
+  }
+
+  // Update the description of a todoItem
+  @Put('/update-description')
+  updateDescription(
+    @Body() dto: UpdateDescriptionTodoItemDto
+  ): TodoItem | { error:string } {
+    return this.todoListsService.setDescriptionStateItem(dto)
+  }
+
+  // Move a todoItem from one todoList to another
+  @Put('/move-item')
+  updateItemList(
+    @Body() dto: UpdateItemTodoListDto
+  ): TodoItem | { error: string } {
+    return this.todoListsService.setItemList(dto);
+  }
+
+  // Change the name of a todoList
+  @Put('/:todoListId')
   update(
+    @Param() param: { todoListId: number },
     @Body() dto: UpdateTodoListDto,
   ): TodoList | { error: string } {
-    return this.todoListsService.update(dto);
+    return this.todoListsService.update(param.todoListId, dto);
   }
 
-  @Put('/completion-state/:idList')
-  updateCompletionState(
-    @Param() param: { idList: number },
-    @Body() bdy: { idItem: number, state: boolean } 
-  ): TodoItem | { error:string } {
-    return this.todoListsService.setCompletionStateItem(param.idList, bdy.idItem, bdy.state)
-  }
-
-  @Put('/description/:idList')
-  updateDescription(
-    @Param() param: { idList: number },
-    @Body() bdy: { idItem: number, description: string } 
-  ): TodoItem | { error:string } {
-    return this.todoListsService.setDescriptionStateItem(param.idList, bdy.idItem, bdy.description)
-  }
-
-  @Put('/list/:idList')
-  updateItemList(
-    @Param() param: { idList: number },
-    @Body() bdy: { idNewList: number, idItem: number }
-  ): TodoItem | { error: string } {
-    return this.todoListsService.setItemList(param.idList, bdy.idNewList, bdy.idItem);
-  }
-
-  @Delete()
-  delete(
-    @Body() body: { idList: number }
+  // Delete a todoItem from a todoList
+  @Delete('/delete-todoitem')
+  deleteItemList(
+    @Body() body: { todoListId: number, todoItemId: number }
   ): void |  { error: string } {
-    const deleteRes = this.todoListsService.delete(body.idList);
+    console.log("LLEGUE");
+    const deleteItemRes = this.todoListsService.deleteItemList(body.todoListId, body.todoItemId)
+    if (deleteItemRes) {
+      return deleteItemRes;
+    }
+  }
+
+  // Delete a todoList
+  @Delete('/:todoListId')
+  delete(
+    @Param() param: { todoListId: number }
+  ): void |  { error: string } {
+    const deleteRes = this.todoListsService.delete(param.todoListId);
     if (deleteRes) {
       return deleteRes;
     }
   }
 
-  @Delete('/:idList')
-  deleteItemList(
-    @Param() param: { idList: number },
-    @Body() bdy: { idItem: number }
-  ): void |  { error: string } {
-    const deleteItemRes = this.todoListsService.deleteItemList(param.idList, bdy.idItem)
-    if (deleteItemRes) {
-      return deleteItemRes;
-    }
-  }
 }

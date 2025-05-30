@@ -1,61 +1,68 @@
+// MCP Server
+// Juan Manuel Pacheco
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from 'zod'
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
+// Inicialize MCP Server
 const server = new McpServer ({
-  name: 'Server mcp Crunchloop',
+  name: 'Server MCP Crunchloop',
   version: '1.0.0'
 })
 
+// Create TodoList Tool
 server.tool(
   'create-todoList',
-  'Tool para crear una nueva todoList',
+  'Tool that creates a new todoList',
   { 
-      nombre: z.string().describe('Nombre de todoList nueva')
+      todoListName: z.string().describe('Name of the new todoList')
   },
-  async ({ nombre }) => {
+  async ({ todoListName }) => {
       try {
-          // llamada a api
-          const crearResp = await fetch('http://localhost:3000/api/todolists', {
+          // API call to create a new todoList
+          const createTodoListResp = await fetch('http://localhost:3000/api/todolists', {
               method: 'POST',
               headers: {'Content-Type': 'application/json',},
-              body: JSON.stringify({ name: nombre })
+              body: JSON.stringify({ name: todoListName })
           });
 
-          // fallar si la respuesta no es valida
-          if (!crearResp.ok) {
-              throw new Error(`Error ${crearResp.status}: ${await crearResp.text()}`);
+          // API call failed
+          if (!createTodoListResp.ok) {
+              throw new Error(`Error ${createTodoListResp.status}: ${await createTodoListResp.text()}`);
           }
 
-          // extraer y retornar la informacion
-          const crearData = await crearResp.json();
+          // Extract Data
+          const createTodoListData = await createTodoListResp.json();
 
-          // Ya exsite una lista con el nombre nombreLista
-          if('error' in crearData) {
+          // If a list with the name 'todoListName' already exists return error
+          if('error' in createTodoListData) {
             return {
               content: [
                 {
                   type:'text',
-                  text: `Ya existe una lista con el nombre ${nombre}`
+                  text: `Error, a todoList with the name "${createTodoListData}" already exists`
                 }
               ]
             }
           }
 
+          // If everything went correctly return the new todoList
           return {
               content: [
                   {
                       type: 'text',
-                      text: JSON.stringify(crearData, null, 2)
+                      text: JSON.stringify(createTodoListData, null, 2)
                   }
               ]
           };
       } catch (error) {
+        // Handle other errors
           return {
               content: [
                   {
                       type: 'text',
-                      text: `No se pudo crear la todoList: ${error.message}`
+                      text: `Unable to create the todoList: ${error.message}`
                   }
               ]
           };
@@ -63,55 +70,58 @@ server.tool(
   }
 )
 
+// Change todoList's name Tool
 server.tool(
-  'update-todoList',
-  'Tool para cambiar el nombre de una todoList',
+  'changeName-todoList',
+  'Tool to change the name of a todoList',
   {
-    idLista: z.number().describe('Id de la lista a la que se le desea cambiar el nombre'),
-    nuevoNombre: z.string().describe('Nuevo nombre que tendra la lista')
+    todoListId: z.number().describe('Id of the todoList whose name should be changed'),
+    todoListNewName: z.string().describe('New name for the todoList')
   },
-  async ({idLista, nuevoNombre}) => {
+  async ({todoListId, todoListNewName}) => {
     try{
-      const cambiarNomListaResp = await fetch('http://localhost:3000/api/todolists', {
+      // API call to change the name of a todoList
+      const changeNameTodoListResp = await fetch(`http://localhost:3000/api/todolists/${todoListId}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json',},
-        body: JSON.stringify({ idList: idLista, newName: nuevoNombre })
+        body: JSON.stringify({ name: todoListNewName })
       })
 
-      if (!cambiarNomListaResp.ok) {
-        throw new Error(`Error ${cambiarNomListaResp.status}: ${await cambiarNomListaResp.text()}`);
+      // API call failed
+      if (!changeNameTodoListResp.ok) {
+        throw new Error(`Error ${changeNameTodoListResp.status}: ${await changeNameTodoListResp.text()}`);
       }
 
-      // extraer y retornar la informacion
-      const cambiarNomData = await cambiarNomListaResp.json();
-
-      // Ya exsite una lista con el nombre nombreLista
-      if('error' in cambiarNomData) {
+      // Extract Data
+      const changeNameTodoListData = await changeNameTodoListResp.json();
+      if('error' in changeNameTodoListData) {
         return {
           content: [
             {
               type:'text',
-              text: `La lista no existe`
+              text: `Error, a todoList with the id ${todoListId} does not exist`
             }
           ]
         }
       }
 
+      // If everthing went correctly return the updated todoList
       return {
           content: [
               {
                   type: 'text',
-                  text: JSON.stringify(cambiarNomData, null, 2)
+                  text: JSON.stringify(changeNameTodoListData, null, 2)
               }
           ]
       };
 
     }catch(error){
+      // Handle other errors
       return {
           content: [
             {
               type: 'text',
-              text: `No se pudo cambiar el nombre de la lista: ${error.message}`
+              text: `Unable to change the name of the todoList: ${error.message}`
             }
           ]
       };
@@ -120,57 +130,59 @@ server.tool(
   }
 )
 
+// Delete todoList Tool
 server.tool(
   'delete-todoList', 
-  'Tool que permite eliminar una lista en su totalidad, incluyendo todos los items que pertenecen a ella',
+  'Tool that deletes a todoList, including all the items that belong to it',
   {
-    idLista: z.number().describe('Id de la lista que se desea eliminar')
+    todoListId: z.number().describe('Id of the todoList that wants to be deleted')
   },
-  async ({ idLista }) => {
+  async ({ todoListId }) => {
       try{
-        const eliminarListaResp = await fetch('http://localhost:3000/api/todolists', {
-          method: 'DELETE', 
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ idList: idLista })
+        // API call to delete a todoList
+        const deleteTodoListResp = await fetch(`http://localhost:3000/api/todolists/${todoListId}`, {
+          method: 'DELETE'
         });
       
-      // fallar si la llamada a la api no fue valida
-      if (!eliminarListaResp.ok) {
-        throw Error(`Error al eliminar la lista`)
+      // API call failed
+      if (!deleteTodoListResp.ok) {
+        throw new Error(`Error, the todoList could not be deleted`);
       }
       
-      const textResp = await eliminarListaResp.text()
+      // Extract Data
+      const textResp = await deleteTodoListResp.text()
       if (textResp) {
-        const eliminarListaDatos = JSON.parse(textResp);
-
-        if ("error" in eliminarListaDatos) {
+        const deleteTodoListData = JSON.parse(textResp);
+        
+        // If the todoList does not exist
+        if ("error" in deleteTodoListData) {
           return {
             content: [
               {
                 type: 'text',
-                text: `Error, la lista no existe`
+                text: `Error, the todoList that wants to be deleted does not exist`
               }
             ]
           }
         }
       }
 
-      
-      
+      // If everything went correctly return success
       return {
         content: [
           {
             type:'text',
-            text: `La lista se elimino correctamente`
+            text: `The todoList was successfully deleted`
           }
         ]
       };
     } catch(error) {
+      // Handle other errors
       return {
             content: [
               {
                 type: 'text',
-                text: `No se pudo eliminar a la Lista: ${error.message}`
+                text: `Unable to delete de todoList: ${error.message}`
               }
             ]
         };
@@ -178,39 +190,62 @@ server.tool(
   }
 );
 
+// Get a todoList Tool (gets one todoList with all its items)
 server.tool(
-  'get-todoListsNames',
-  'Tool para obtener todos los nombres de las Listas existentes',
-  {}, 
-  async () => {
+  'get-a-todoList',
+  'Tool to get the information of a todoList',
+  {
+    todoListId: z.number().describe('Id of the todoList that wants to be retrieved')
+  }, 
+  async ({ todoListId }) => {
     try {
-      //llamada a api
-      const obtenerNomListasResp = await fetch('http://localhost:3000/api/todolists', {
+      // API call to get all the todoLists
+      const getTodoListResp = await fetch(`http://localhost:3000/api/todolists/${todoListId}`, {
         method: 'GET'
       });
 
-      // fallar si respuesta no es valida
-      if (!obtenerNomListasResp.ok) {
-        throw new Error(`Error al obtener todos los nombres de las Listas: ${obtenerNomListasResp.statusText}`);
+      // API call failed
+      if (!getTodoListResp.ok) {
+        throw new Error(`Error when retriveing the todoList: ${getTodoListResp.statusText}`);
       }
 
-      // extraer y retornar informacion
-      const obtenerNomListasData = await obtenerNomListasResp.json();
+      // Extract Data
+      console.log("textTodoListResp");
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(obtenerNomListasData, null, 2)
+      const textTodoListResp = await getTodoListResp.text()
+      console.log(textTodoListResp);
+      if (textTodoListResp) {
+        const getTodoListData = JSON.parse(textTodoListResp);
+        
+        // If the todoList does not exist
+        if ("error" in getTodoListData) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error, the todoList that wants to be retrieved does not exist`
+              }
+            ]
           }
-        ]
+        }
+        
+        // If everything went correctly return the todoList
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(getTodoListData)
+            }
+          ]
+        }
       };
     } catch (error) {
+      // Handle other errors
       return {
         content: [
           {
             type: 'text',
-            text: `No se pudieron obtener las todoLists: ${(error as Error).message}`
+            text: `Unable to retrieve the todoList: ${(error as Error).message}`
           }
         ]
       };
@@ -218,55 +253,102 @@ server.tool(
   }
 );
 
-server.tool(
-  'add-todoItem-todoList',
-  'Agrega un Item a una Lista existente usando el id de la lista',
-  {
-    idLista: z.number().describe('Id de la Lista a la que se quiere agregar el item'),
-    descripcion: z.string().describe('Descripcion del Item que se quiere agregar'),
-  },
-  async ({ idLista, descripcion }) => {
 
+// Get todoLists Tool (gets all the todoLists with all their items)
+server.tool(
+  'getAll-todoLists',
+  'Tool to get all the todoLists, including all their items',
+  {}, 
+  async () => {
     try {
-      const crearItemListaResp = await fetch(`http://localhost:3000/api/todolists/${idLista}`, {
+      // API call to get all the todoLists
+      const getTodoListsResp = await fetch('http://localhost:3000/api/todolists', {
+        method: 'GET'
+      });
+
+      // API call failed
+      if (!getTodoListsResp.ok) {
+        throw new Error(`Error when retriveing all the todoLists: ${getTodoListsResp.statusText}`);
+      }
+
+      // Extract Data
+      const getTodoListsData = await getTodoListsResp.json();
+      // Return the extracted data, if there are no lists it returns an empty array ([])
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(getTodoListsData, null, 2)
+          }
+        ]
+      };
+    } catch (error) {
+      // Handle other errors
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Unable to retrieve all the todoLists: ${(error as Error).message}`
+          }
+        ]
+      };
+    }
+  }
+);
+
+
+// Add todoItem to a todoList
+server.tool(
+  'create-todoItem-todoList',
+  'Tool that creates a new todoItem and adds it into a todoList',
+  {
+    todoListId: z.number().describe('Id of the todoList where the new todoItem has to be added'),
+    description: z.string().describe('Description of the new todoItem'),
+  },
+  async ({ todoListId, description }) => {
+    try {
+      // API call to create a new todoItem
+      const createTodoItemResp = await fetch(`http://localhost:3000/api/todolists/add-todoitem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descripcion: descripcion })
+        body: JSON.stringify({ todoListId: todoListId, description: description })
       });
   
-      //  fallar si la respuesta no es calida
-      if (!crearItemListaResp.ok) {
-        throw new Error(`Error al crear el item en la lista`);
+      // API call failed
+      if (!createTodoItemResp.ok) {
+        throw new Error(`Error when creating a new todoItem`);
       }
   
-        // extraer y retornar la informacion
-      const crearItemListaData = await crearItemListaResp.json();
-
-      if ("error" in crearItemListaData) {
+      // Extract Data
+      const createTodoItemData = await createTodoItemResp.json();
+      if ("error" in createTodoItemData) {
+        // If the todoList in which the todoItem wants to be added does not exist
         return {
           content: [
             {
               type: 'text',
-              text: `Error, no existe la lista`
+              text: `Error, the todoList with id ${todoListId} does not exist`
             }
           ]
         }
       }
 
+      // If everything went correctly return the todoItem
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(crearItemListaData, null, 2)
+            text: JSON.stringify(createTodoItemData, null, 2)
           }
         ]
       };
     } catch (error) {
+      // Handle other errors
       return {
         content: [
           {
             type: 'text',
-            text: `No se puedo agregar un item a la lista: ${(error as Error).message}`
+            text: `Unable to create the todoItem: ${(error as Error).message}`
           }
         ]
       };
@@ -274,56 +356,61 @@ server.tool(
   }
 );
 
+// Delete todoItem from a todoList Tool
 server.tool(
   'delete-todoItem-todoList', 
-  'Tool que permite eliminar un Item de una Lista utilizando el id de la Lista y el id en esa lista del Item',
+  'Tool that deletes a todoItem from a todoList',
   {
-    idLista: z.number().describe('Es el id de la Lista de la que se quiere eliminar el item'),
-    idItem: z.number().describe('Es el id en la lista del item que se quiere eliminar')
+    todoListId: z.number().describe('Id of the todoList that has the todoItem that has to be deleted'),
+    todoItemId: z.number().describe('Id of the todoItem within the todoList to which it belongs')
   },
-  async ({ idLista, idItem}) => {
+  async ({ todoListId, todoItemId}) => {
     try {
-      const eliminarItemRes = await fetch(`http://localhost:3000/api/todolists/${idLista}`, {
+      // API call to delete a todoItem
+      const deleteTodoItemRes = await fetch(`http://localhost:3000/api/todolists/delete-todoitem`, {
         method: 'DELETE',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ idItem: idItem })
+        body: JSON.stringify({ todoListId: todoListId, todoItemId: todoItemId })
       });
-  
-      // si la llamada del borrado falla
-      if (!eliminarItemRes.ok) {
-        throw new Error(`Error al eliminar el item de la lista`);
+
+      // API call failed
+      if (!deleteTodoItemRes.ok) {
+        throw new Error(`Error when deleting the todoList`);
       }
 
-      const textEliminarItem = await eliminarItemRes.text()
-      if (textEliminarItem) {
-        const eliminarItemDatos = JSON.parse(textEliminarItem);
-
-        if ("error" in eliminarItemDatos) {
+      // Extract Data
+      const textDeleteItemResp = await deleteTodoItemRes.text()
+      if (textDeleteItemResp) {
+        const deleteTodoItemData = JSON.parse(textDeleteItemResp);
+        // If todoList or todoItem do not exist
+        if ("error" in deleteTodoItemData) {
           return {
             content: [
               {
                 type: 'text',
-                text: `No existe la lista o no existe el item`
+                text: `Error, a todoList with id ${todoListId} does not exist or a todoItem with id ${todoItemId} does not exist`
               }
             ]
           }
         }
       }
 
+      // If everything went correctly return success
       return {
         content: [
           {
             type:'text',
-            text: "Se elimino correctamente el item"
+            text: "The todoItem was successfully deleted"
           }
         ]
       };
     } catch (error) {
+      // Handle other errors
       return {
           content: [
             {
               type: 'text',
-              text: `No se puedo eliminar el item de la Lista: ${(error as Error).message}`
+              text: `Unable to delete todoItem from todoList: ${(error as Error).message}`
             }
           ]
         };
@@ -331,110 +418,182 @@ server.tool(
   }
 );
 
-
+// Mark todoItem as Completed Tool
 server.tool(
-  'get-todoItems-todoList',
-  'Tool que permite obtener toda la informacion de todos los Items de una Lista',
+  'setCompleted-todoItem',
+  'Tool that sets the state of a todoItem to completed',
   {
-    idLista: z.number().describe('Id de la lista de la cual se quiere obtener los Items'),
+    todoListId: z.number().describe('Id of the todoList that has the todoItem whose state has to be set to completed'),
+    todoItemId: z.number().describe('Id of the todoItem within the todoList whose state has to be set to completed'),
+
   },
-  async ({ idLista }) => {
+  async ({ todoListId, todoItemId }) => {
     try {
-      const obtenerItemsResp = await fetch(`http://localhost:3000/api/todolists/${idLista}`, {
-        method: 'GET'
+      // API call to set a todoItem as completed
+      const setCompletedTodoItemRes = await fetch(`http://localhost:3000/api/todolists/completion-state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ todoListId: todoListId, todoItemId: todoItemId, state: true }),
       });
   
-      // fallar si la llamada a la api no retorno resultados correctos
-      if (!obtenerItemsResp.ok) {
-        throw new Error(`Error obtener los items de la lista con id: ${idLista}`);
+      // API call failed
+      if (!setCompletedTodoItemRes.ok) {
+        throw new Error(`Error, could not set todoItem with: ${todoItemId} from todoList with id: ${todoListId} as completed`);
+      }
+  
+      // Extract Data
+      const setCompletedTodoItemData = await setCompletedTodoItemRes.json();
+      if ("error" in setCompletedTodoItemData) {
+        // If todoList or todoItem do not exist
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Unable to set as completed todoItem with id ${todoItemId} from todoList with id ${todoListId} because either the todoList or todoItem do not exist`
+            }
+          ]
+        }
+      }
+  
+      // If everything went correctly return the updated todoItem
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(setCompletedTodoItemData, null, 2)
+          }
+        ]
       }
 
+    } catch (error) {
+      // Handle other errors
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Unable to set todoItem as completed: ${(error as Error).message}`
+          }
+        ]
+      };
+    }
+  }
+);
+
+server.tool(
+  'setIncompleted-todoItem',
+  'Tool that sets the state of a todoItem to incompleted',
+  {
+    todoListId: z.number().describe('Id of the todoList that has the todoItem whose state has to be set to incompleted'),
+    todoItemId: z.number().describe('Id of the todoItem within the todoList whose state has to be set to incompleted'),
+
+  },
+  async ({ todoListId, todoItemId }) => {
+    try {
+      // API call to set a todoItem as incompleted
+      const setIncompletedTodoItemRes = await fetch(`http://localhost:3000/api/todolists/completion-state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ todoListId: todoListId, todoItemId: todoItemId, state: false }),
+      });
       
-      // extraer la informacion y retornar 
-      const obtenerItemsData = await obtenerItemsResp.json();
-      if ("error" in obtenerItemsData) {
+      // API call failed
+      if (!setIncompletedTodoItemRes.ok) {
+        throw new Error(`Error, could not set todoItem with: ${todoItemId} from todoList with id: ${todoListId} as completed`);
+      }
+  
+      // Extract Data
+      const setIncompletedTodoItemData = await setIncompletedTodoItemRes.json();
+      if ("error" in setIncompletedTodoItemData) {
+        // If todoItem or todoList do not exist
         return {
           content: [
             {
               type: 'text',
-              text: `No existe una lista con el id ${idLista}`
+              text: `Unable to set as incompleted todoItem with id ${todoItemId} from todoList with id ${todoListId} because either the todoList or todoItem do not exist`
             }
           ]
         }
       }
-
+  
+      // If everything went correctly return the updated todoItem
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(obtenerItemsData, null, 2)
+            text: JSON.stringify(setIncompletedTodoItemData, null, 2)
+          }
+        ]
+      }
+
+    } catch (error) {
+      // Handle other errors
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Unable to set todoItem as incompleted: ${(error as Error).message}`
           }
         ]
       };
-
-    } catch (error) {
-      return {
-          content: [
-            {
-              type: 'text',
-              text: `No se pudieron obtener los items de la Lista: ${(error as Error).message}`
-            }
-          ]
-        };
     }
   }
 );
 
+// Change todoItem description Tool
 server.tool(
-  'markDone-todoItem',
-  'Tool que permite actualizar el estado de finalizacion de un todoItem a finalizado',
+  'changeDecription-todoItem',
+  'Tool to change the description of a todoItem',
   {
-    idLista: z.number().describe('Id de la lista donde se encuentra el item al que se le desea marcar como finalizado'),
-    idItem: z.number().describe('Id dentro de la lista del item al que se que se desea marcar como finzalidazo'),
+    todoListId: z.number().describe('Id of the todoList that has the todoItem whose description has to be changed'),
+    todoItemId: z.number().describe('Id of the todoItem within the todoList whose description has to be changed'),
+    description: z.string().describe('New description of the todoItem')
 
   },
-  async ({ idLista, idItem }) => {
+  async ({ todoListId, todoItemId, description }) => {
     try {
-      const finalizarItemRes = await fetch(`http://localhost:3000/api/todolists/completion-state/${idLista}`, {
+      // API call to change the description of a todoItem
+      const updateDescTodoItemRes = await fetch(`http://localhost:3000/api/todolists/update-description`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idItem: idItem, state: true }),
+        body: JSON.stringify({ todoListId: todoListId, todoItemId: todoItemId, description: description }),
       });
-  
-      // si la llamada a la api falla
-      if (!finalizarItemRes.ok) {
-        throw new Error(`No se pudo como finalizado al item con id: ${idItem} de la lista con id: ${idLista}`);
+
+      // API call failed
+      if (!updateDescTodoItemRes.ok) {
+        throw new Error(`Error, could not change the description of the todoItem with id: ${todoItemId} that belongs to the todoList with id: ${todoListId}`);
       }
   
-      // extraer y retornar la informacion
-      const finalizarItemData = await finalizarItemRes.json();
-  
-      if ("error" in finalizarItemData) {
+      // Extract Data
+      const updateDescTodoItemData = await updateDescTodoItemRes.json();
+      if ("error" in updateDescTodoItemData) {
+        // If the todoItem or the todoList do not exist
         return {
           content: [
             {
               type: 'text',
-              text: `No se pudo finalizar el item con id ${idItem} porque o bien no existe el item, o no existe la lista con id ${idLista}`
+              text: `Unable to change the description of the todoItem with ${todoItemId} either because the todoItem does not exist or a todoList with id ${todoListId} does not exist`
             }
           ]
         }
       }
-  
+      
+      // If everything went correctly return the updated todoItem
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(finalizarItemData, null, 2)
+            text: JSON.stringify(updateDescTodoItemData, null, 2)
           }
         ]
       }
 
     } catch (error) {
+      // Handle other errors
       return {
         content: [
           {
             type: 'text',
-            text: `No se pudo finalizar el item de la Lista: ${(error as Error).message}`
+            text: `Unable to change the description of the todoItem: ${(error as Error).message}`
           }
         ]
       };
@@ -442,171 +601,60 @@ server.tool(
   }
 );
 
+// Move todoItem from one todoList to another
 server.tool(
-  'markUndone-todoItem',
-  'Tool que permite actualizar el estado de finalizacion de un todoItem a no finalizado',
+  'move-todoItem-todoList',
+  'Tool to move a todoItem from one todoList to another todoList',
   {
-    idLista: z.number().describe('Id de la lista donde se encuentra el item al que se le desea marcar como no finalizado'),
-    idItem: z.number().describe('Id dentro de la lista del item al que se que se desea marcar como no finzalidazo'),
-
+    todoListId: z.number().describe('Id of the todoList to which the todoItem belongs to currently'),
+    newTodoListId: z.number().describe('Id of the new todoList to which the todoItem will belong from now on'),
+    todoItemId: z.number().describe('Id of the todoItem within the todoList to which it currently belongs')
   },
-  async ({ idLista, idItem }) => {
-    try {
-      const desfinalizarItemRes = await fetch(`http://localhost:3000/api/todolists/completion-state/${idLista}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idItem: idItem, state: false }),
-      });
-  
-      // si la llamada a la api falla
-      if (!desfinalizarItemRes.ok) {
-        throw new Error(`No se pudo marcar como no finalizado al item con id: ${idItem} de la lista con id: ${idLista}`);
-      }
-  
-      // extraer y retornar la informacion
-      const desfinalizarItemData = await desfinalizarItemRes.json();
-  
-      if ("error" in desfinalizarItemData) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `No se pudo no finalizar al item con id ${idItem} porque o bien no existe el item, o no existe la lista con id: ${idLista}`
-            }
-          ]
-        }
-      }
-  
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(desfinalizarItemData, null, 2)
-          }
-        ]
-      }
-
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `No se pudo no finalizar el item de la todoList: ${(error as Error).message}`
-          }
-        ]
-      };
-    }
-  }
-);
-
-server.tool(
-  'updateDecription-todoItem',
-  'Tool que permite actualizar la descripcion de un Item',
-  {
-    idLista: z.number().describe('Id de la lista donde se encuentra el item al que se le desea cambiar la descripcion'),
-    idItem: z.number().describe('Id dentro de la lista del item al que se que se desea cambiar la descripcion'),
-    nuevaDescripcion: z.string().describe('Nueva descripcion que tendra el Item')
-
-  },
-  async ({ idLista, idItem, nuevaDescripcion }) => {
-    try {
-      const modificarDescItemRes = await fetch(`http://localhost:3000/api/todolists/description/${idLista}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idItem: idItem, description: nuevaDescripcion }),
-      });
-  
-      // si la llamada a la api falla
-      if (!modificarDescItemRes.ok) {
-        throw new Error(`No se pudo cambiar la descripcion al item con id: ${idItem} de la lista con id: ${idLista}`);
-      }
-  
-      // extraer y retornar la informacion
-      const modificarDescItemData = await modificarDescItemRes.json();
-  
-      if ("error" in modificarDescItemData) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `No se pudo cambiar la descripcion item con id ${idItem} porque o bien no existe el item, o no existe la lista con id ${idLista}`
-            }
-          ]
-        }
-      }
-  
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(modificarDescItemData, null, 2)
-          }
-        ]
-      }
-
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `No se pudo cambiar la descripcion del item de la Lista: ${(error as Error).message}`
-          }
-        ]
-      };
-    }
-  }
-);
-
-
-server.tool(
-  'changeList-todoItem',
-  'Tool que permite cambiar la lista a la que pertenece un todoItem',
-  {
-    idLista: z.number().describe('Id de la lista a la que pertenece actualmente el item'),
-    idNuevaLista: z.number().describe('Id de la nueva lista a la que se desea asignar el todoItem'),
-    idItem: z.number().describe('Id dentro de la lista, del item al que se le desea modificar la lista a la que pertenece')
-  },
-  async ({ idLista, idNuevaLista, idItem}) => {
+  async ({ todoListId, newTodoListId, todoItemId}) => {
     try{
-      const cambiarItemListRes = await fetch(`http://localhost:3000/api/todolists/list/${idLista}`, {
+      // API call to move a todoItem from one todoList to another
+      const moveTodoItemRes = await fetch(`http://localhost:3000/api/todolists/move-item`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNewList: idNuevaLista, idItem: idItem }),
+        body: JSON.stringify({ todoListId: todoListId, newTodoListId: newTodoListId, todoItemId: todoItemId }),
       });
   
-      // fallar si la llamada a la api no es valida
-      if (!cambiarItemListRes.ok) {
-        throw new Error(`No se pudo cambiar el item con id: ${idItem} desde la lista con id ${idLista} a la lista con id ${idNuevaLista}`);
+      // API call failed
+      if (!moveTodoItemRes.ok) {
+        throw new Error(`Error, could not move todoItem with id ${todoItemId} from todoList with id ${todoListId} to the todoList with id ${newTodoListId}`);
       }
 
-      const cambiarItemListData = await cambiarItemListRes.json();
-
-      if ("error" in cambiarItemListData) {
+      // Extract Data
+      const moveTodoItemListData = await moveTodoItemRes.json();
+      if ("error" in moveTodoItemListData) {
+        // If either both of the todoLists or the todoItem do not exist
         return {
           content: [
             {
               type: 'text',
-              text: `No se pudo cambiar el item de la lista, o bien porque alguna de las listas no existe o porque el item no existe`
+              text: `Unable to move the todoItem either because a todoItem with id ${todoItemId} does not exist in the todoList witth id ${todoListId} or because one or both of the todoLists with ids ${todoListId}, ${newTodoListId} do not exist`
             }
           ]
         }
       }
 
+      // If everything went correctly return the upodated todoItem
       return {
         content: [
           {
             type:'text',
-            text: "El item de cambio de lista correctamente"
+            text: JSON.stringify(moveTodoItemListData, null, 2)
           }
         ]
       };
 
     } catch (error) {
+      // Handle other errors
       return {
               content: [
                 {
                   type: 'text',
-                  text: `No se pudo cambiar de lista el item: ${(error as Error).message}`
+                  text: `Unable to move the todoItem: ${(error as Error).message}`
                 }
               ]
             };
@@ -615,48 +663,9 @@ server.tool(
   }
 );
 
-server.tool(
-  'get-all-todoLists',
-  'Tool todas las listas existentes, incluyendo todos los items que pertencen a ellas',
-  {}, 
-  async () => {
-    try {
-      //llamada a api
-      const obtenerAllListsResp = await fetch('http://localhost:3000/api/todolists/all', {
-        method: 'GET'
-      });
+const transport = new StdioServerTransport(); // Standard Input/Ouptut
 
-      // fallar si respuesta no es valida
-      if (!obtenerAllListsResp.ok) {
-        throw new Error(`Error al obtener todas las Listas: ${obtenerAllListsResp.statusText}`);
-      }
-
-      // extraer y retornar informacion
-      const obtenerAllListsData = await obtenerAllListsResp.json();
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(obtenerAllListsData, null, 2)
-          }
-        ]
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `No se pudieron obtener todas las todoList: ${(error as Error).message}`
-          }
-        ]
-      };
-    }
-  }
-);
-
-
-const transport = new StdioServerTransport();
+// Connect server
 async function main() {
   await server.connect(transport);
 }

@@ -1,5 +1,5 @@
 export interface TodoItem {
-    id: number, // Id 
-    descripcion: string, // Texto de nota
-    finalizada: boolean, // Finalizada o no finalizada
+    itemId: number, // Id 
+    description: string, // Texto de nota
+    completed: boolean, // Finalizada o no finalizada
 }
