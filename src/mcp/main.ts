@@ -210,10 +210,8 @@ server.tool(
       }
 
       // Extract Data
-      console.log("textTodoListResp");
 
       const textTodoListResp = await getTodoListResp.text()
-      console.log(textTodoListResp);
       if (textTodoListResp) {
         const getTodoListData = JSON.parse(textTodoListResp);
         
